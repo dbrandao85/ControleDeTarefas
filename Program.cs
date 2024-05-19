@@ -1,44 +1,52 @@
+using ControleDeTarefas.Context;
+using Microsoft.EntityFrameworkCore;
+using MySqlX.XDevAPI.Common;
+
 var builder = WebApplication.CreateBuilder(args);
 
-
+var connectionString = builder.Configuration.GetConnectionString("Connection");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddDbContext<Context>
+    (options => options.UseMySQL(connectionString));
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+
+app.MapPost("AddTask", async (ControleDeTarefas.Model.Task task, Context context) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    context.Task.Add(task);
+    await context.SaveChangesAsync();
+
+    return Results.Created("Criado com sucesso", task);
+});
+
+app.MapPost("DeleteTask/{id}", async (int id, Context context) =>
+{
+    var taskToDelete = await context.Task.FirstOrDefaultAsync(task => task.Id == id);
+
+    if (taskToDelete is null)
+    {
+        return Results.NotFound();
+    }
+
+    context.Task.Remove(taskToDelete);
+    await context.SaveChangesAsync();
+
+    return Results.Ok(taskToDelete);
+});
+
+app.MapGet("GetTasks", async (Context context) =>
+{
+    return await context.Task.ToListAsync();
+});
+
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-//var summaries = new[]
-//{
-//    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-//};
-
-//app.MapGet("/weatherforecast", () =>
-//{
-//    var forecast = Enumerable.Range(1, 5).Select(index =>
-//        new WeatherForecast
-//        (
-//            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-//            Random.Shared.Next(-20, 55),
-//            summaries[Random.Shared.Next(summaries.Length)]
-//        ))
-//        .ToArray();
-//    return forecast;
-//})
-//.WithName("GetWeatherForecast")
-//.WithOpenApi();
-
 app.Run();
 
-//internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-//{
-//    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-//}
