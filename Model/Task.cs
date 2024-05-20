@@ -10,5 +10,6 @@ namespace ControleDeTarefas.Model
         public DateTime Sla { get; set; }
         public string FileName { get; set; }
         public bool Notified { get; set; }
+        public bool Done { get; set; }
     }
 }
